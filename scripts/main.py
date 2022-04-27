@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # license removed for brevity
-# from TurtlebotDriving import TurtlebotDriving
-# import rospy
+from TurtlebotDriving import TurtlebotDriving
+import rospy
 
 from algorithm.astar import Astar
 
@@ -44,6 +44,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
 

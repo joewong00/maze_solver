@@ -59,9 +59,9 @@ class TurtlebotDriving:
         self.wait(1)
 
 
-    def rotate(self, alpha):
+
+    def rotate(self, alpha, speed=0.2):
         self.previousT = self.pose.theta
-        speed = 0.1
         angle  = 2* math.pi * alpha/360 
         
         twist = Twist()
@@ -80,6 +80,7 @@ class TurtlebotDriving:
         self.wait(1)
 
 
+
     def wait(self, duration):
         wait = Twist()
         time = rospy.Time.now().to_sec()
@@ -90,19 +91,25 @@ class TurtlebotDriving:
             rate.sleep() 
 
 
+
     def move(self, path):
-        for i in range(path) - 1:
+        for i in range(len(path)-1):
             current = path[i]
             next = path[i+1]
 
             difference = tuple(map(lambda i,j: i-j, next, current))
 
             if difference[0]:
-                self.walk(0.5)
+                if i == 0:
+                    self.walk(0.5)
+                else:
+                    self.rotate(-90)
+                    self.walk(0.5)
 
             if difference[1]:
                 self.rotate(90)
                 self.walk(0.5)
+                
                 
 
     def orient(self, desired_angle):

@@ -52,3 +52,5 @@ CATKIN_IGNORE
 
 # DS Store
 **/.DS_Store
+
+/.vscode
