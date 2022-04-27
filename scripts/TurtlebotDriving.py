@@ -34,64 +34,13 @@ class TurtlebotDriving:
         rospy.Subscriber('camera/rgb/image_raw', Image, self.image_callback)
         rospy.Subscriber('camera/depth/image_raw', Image, self.depth_callback)
         rospy.sleep(2)
-    
-    def rotate(self, speed =0.1):
-        twist = Twist()
-        twist.angular.z = speed
-        self.cmd_vel_pub.publish(twist)
-       
-    def walk(self, speed = 0.1):
-        twist = Twist()
-        twist.linear.x = speed
-        self.cmd_vel_pub.publish(twist)
 
-    def randomRotate(self):
-        angle = random.uniform(-180,180)
-        self.openRotate(angle)
+# ---------------------------------------- Driving ----------------------------------------
 
-    def wait(self, duration):
-        wait = Twist()
-        time = rospy.Time.now().to_sec()
-        rate = rospy.Rate(10)
-
-        while rospy.Time.now().to_sec() - time <= rospy.Duration(duration).to_sec():
-            self.cmd_vel_pub.publish(wait)
-            rate.sleep() 
-        
-    def openWalk(self, distance):
-        speed = 0.2
-        num_secs = distance / speed
-        rate = rospy.Rate(10)
-        
-        twist = Twist()
-        twist.linear.x = speed
-
-        time = rospy.Time.now().to_sec()
-        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec():
-            self.cmd_vel_pub.publish(twist)
-            rate.sleep()
-        
-        self.wait(1)
-
-    def openRotate(self,alpha, speed= 0.2):
-        angle  = 2* math.pi * alpha/360 
-        num_secs = angle / speed
-        twist = Twist()
-        twist.angular.z = speed
-
-        rate = rospy.Rate(10)
-        time = rospy.Time.now().to_sec()
-        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec():
-            self.cmd_vel_pub.publish(twist)
-            rate.sleep()
-
-        self.wait(1)
-
-    def closedWalk(self, distance):
+    def walk(self, distance, speed=0.2):
         self.previousX = self.pose.x 
         self.previousY = self.pose.y
 
-        speed = 0.1
         rate = rospy.Rate(10)
 
         twist = Twist()
@@ -108,8 +57,9 @@ class TurtlebotDriving:
             rate.sleep()
         
         self.wait(1)
-    
-    def closedRotate(self, alpha):
+
+
+    def rotate(self, alpha):
         self.previousT = self.pose.theta
         speed = 0.1
         angle  = 2* math.pi * alpha/360 
@@ -129,12 +79,44 @@ class TurtlebotDriving:
             rate.sleep()
         self.wait(1)
 
+
+    def wait(self, duration):
+        wait = Twist()
+        time = rospy.Time.now().to_sec()
+        rate = rospy.Rate(10)
+
+        while rospy.Time.now().to_sec() - time <= rospy.Duration(duration).to_sec():
+            self.cmd_vel_pub.publish(wait)
+            rate.sleep() 
+
+
+    def move(self, path):
+        for i in range(path) - 1:
+            current = path[i]
+            next = path[i+1]
+
+            difference = tuple(map(lambda i,j: i-j, next, current))
+
+            if difference[0]:
+                self.walk(0.5)
+
+            if difference[1]:
+                self.rotate(90)
+                self.walk(0.5)
+                
+
+    def orient(self, desired_angle):
+        self.previousT = self.pose.theta
+        desired_angle = 2* math.pi * desired_angle/360
+            
+
     def plot_trajectory(self):
         plt.plot(self.x_history, self.y_history)
         plt.xticks(np.arange(-2, 3, 1.0))
         plt.yticks(np.arange(-2, 3, 1.0))
         plt.show()
 
+# ---------------------------------------- Callbacks ----------------------------------------
 
     def odom_callback(self, msg):
         quarternion = [msg.pose.pose.orientation.x,msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
@@ -146,9 +128,11 @@ class TurtlebotDriving:
         self.x_history.append(self.pose.x)
         self.y_history.append(self.pose.y)
     
+
     def scan_callback(self, msg):
         self.scan = msg
         self.scan.ranges = np.array(self.scan.ranges)
+
 
     def image_callback(self, msg):
         image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
@@ -156,12 +140,15 @@ class TurtlebotDriving:
         image_resized = cv2.resize(image, (w/4,h/4))
         self.image = image_resized
 
+
     def depth_callback(self, msg):
         image = self.bridge.imgmsg_to_cv2(msg,'passthrough')
         (h, w) = image.shape[:2]
         image_resized = cv2.resize(image, (w/4,h/4))
         self.depth_img = image_resized
         
+
+# ---------------------------------------- Misc. ----------------------------------------
 
     def checkObstacle(self, degree=75, distance=0.5):
         position = degree//2
@@ -171,6 +158,7 @@ class TurtlebotDriving:
             print("There is an obstacle")
             return True
         return False
+
     
     def avoidObstacle(self, degree=75, distance=0.5):
         rate = rospy.Rate(10)
@@ -201,10 +189,12 @@ class TurtlebotDriving:
             
         print("No Obstacle detected in this direction")
     
+
     def checkRightWall(self, distance):
         if self.scan.ranges[270]< distance:
             print("Right Wall Detected.")
             return True
+
 
     def followRightWall(self, distance):
         twist = Twist()
