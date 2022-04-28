@@ -48,7 +48,6 @@ class BFS():
                     # neighbour not visited yet
                     if visited[nodepos] == False:
                         frontier.appendleft(n)
-                        visited[nodepos] = True
                         previous[nodepos] = current
 
         
