@@ -5,7 +5,7 @@
 
 from algorithm.astar import Astar
 from algorithm.breadthfirst import BFS
-from maze import Maze, Node
+from maze import Maze
 
 
 # config = {
@@ -43,7 +43,7 @@ def main():
 
     maze = Maze(input)
     algorithm = BFS(maze)
-    [path, [count, length, completed]] = algorithm.solve()
+    [path, count, length, completed] = algorithm.solve()
 
     print(path)
     print(count)

@@ -12,23 +12,26 @@ class BFS():
     def solve(self):
 
         # start node
-        queue = deque([self.start])
+        frontier = deque([self.start])
 
         # visited node
         visited = [False] * (self.width * self.height)
+
+        # previous node
+        previous = [None] * (self.width * self.height)
 
         # path count
         count = 0
 
         completed = False
-
-        # visited start node
         
-        while queue:
+        # BFS 
+        while frontier:
             count += 1
-            current = queue.pop()
+            current = frontier.pop()
 
-            visited[current.Position[0] * self.width + current.Position[1]] = True
+            # visit cell
+            visited[current.position[0] * self.width + current.position[1]] = True
 
             if current == self.end:
                 completed = True
@@ -36,18 +39,28 @@ class BFS():
 
             # Node out of bound
             for n in current.neighbours:
+
+                # neighbour is not a wall
                 if n != None:
-                    npos = n.Position[0] * self.width + n.Position[1]
-                    if visited[npos] == False:
-                        queue.appendleft(n)
-                        visited[npos] = True
-                        prev[npos] = current
 
-        path = deque()
+                    nodepos = n.position[0] * self.width + n.position[1]
+
+                    # neighbour not visited yet
+                    if visited[nodepos] == False:
+                        frontier.appendleft(n)
+                        visited[nodepos] = True
+                        previous[nodepos] = current
+
+        
+        # Backtracking
+        pathnode = deque()
         current = self.end
-        while (current != None):
-            path.appendleft(current)
-            current = prev[current.Position[0] * self.width + current.Position[1]]
 
+        while current is not None:
+            nodepos = current.position[0] * self.width + current.position[1]
+            pathnode.appendleft(current)
+            current = previous[nodepos]
 
-        return [path, [count, len(path), completed]]
+        path = [coord.position for coord in pathnode]
+
+        return path, count, len(path), completed
