@@ -1,18 +1,24 @@
 import numpy as np
 
-
 class Maze:
-
     class Node:
         def __init__(self, position=None):
             self.position = position
 
-            self.g = 0
-            self.h = 0
-            self.f = 0
-
             self.neighbours =  [None, None, None, None]
-       
+
+        def __lt__(self, other):
+            return (self.position < other.position) 
+
+        def __gt__(self, other):
+            return (self.position > other.position)
+
+        def __le__(self, other):
+            return (self < other) or (self == other)
+
+        def __ge__(self, other):
+            return (self > other) or (self == other)
+        
 
     def __init__(self, arr):
 
