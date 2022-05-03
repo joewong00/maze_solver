@@ -22,7 +22,7 @@ from algorithm.randommouse import RandomMouse
 config = {
     "map_dir": "map",
     "map_info":"map1.yaml",
-    "algorithm":"bfs"
+    "algorithm":"wallfollowing"
 }
 
 def main():
@@ -77,11 +77,11 @@ def main():
 
     elif config["algorithm"].casefold() == "wallfollowing":
         name = "Right Wall Following"
-        algorithm = WallFollower(maze)
+        algorithm = WallFollower()
 
     elif config["algorithm"].casefold() == "randommouse":
         name = "Random Mouse Algorithm"
-        algorithm = RandomMouse(maze)
+        algorithm = RandomMouse()
 
     else:
         raise Exception('Algorithm specified not available (BFS, DFS, Astar, Djikstra, WallFollowing, RandomMouse)')
@@ -132,12 +132,13 @@ def main():
                 i+=1
 
         try:
-            turtlebot = TurtlebotDriving()
+            bot = TurtlebotDriving()
             for i in range(len(path)-1):
-                turtlebot.move(path[i], path[i+1])
-            turtlebot.plot_trajectory(name)
-            turtlebot.relaunch()
+                bot.move(path[i], path[i+1])
             print("Maze Solved!")
+            bot.plot_trajectory(name)
+            bot.relaunch()
+            
 
         except rospy.ROSInterruptException:
             pass
@@ -152,7 +153,21 @@ def main():
     # --------------------------------- Automous Solving ---------------------------------
     else:
 
-        print(name)
+        t0 = time.time()
+        algorithm.run()
+        t1 = time.time()
+
+        # if completed:
+        #     print("\nPath found:")
+        #     print(path)
+        #     print("Node explored:", count)
+        #     print("Path length:", length)
+        
+        # else:
+        #     print("\nNo path found")
+            
+        print("Time elapsed:", t1-t0, "\n")
+
 
 
 if __name__ == '__main__':

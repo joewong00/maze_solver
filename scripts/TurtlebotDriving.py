@@ -1,3 +1,5 @@
+from dis import dis
+from tabnanny import check
 import rospy
 import tf
 import matplotlib.pyplot as plt
@@ -13,6 +15,7 @@ class Pose2D():
     x = 0
     y = 0
     theta = 0
+
 
 class TurtlebotDriving:
     def __init__(self):
@@ -34,6 +37,21 @@ class TurtlebotDriving:
 # ---------------------------------------- Driving ----------------------------------------
 
     
+    def turn(self, angle, speed = 0.2):
+        angle  = 2* math.pi * angle/360 
+        num_secs = angle / speed
+        twist = Twist()
+        twist.angular.z = speed
+
+        rate = rospy.Rate(10)
+        time = rospy.Time.now().to_sec()
+        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec():
+            self.cmd_vel_pub.publish(twist)
+            rate.sleep()
+
+        self.wait(1)
+
+
     def rotate(self, angle, speed = 0.7):
         angle = angle % (2*math.pi)
         print("Rotating to "+str(angle)+"radian...")
@@ -74,13 +92,13 @@ class TurtlebotDriving:
  
     
         time = rospy.Time.now().to_sec()
-        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec():
+        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec() and not rospy.is_shutdown():
 
             check_range = np.append(self.scan.ranges[:89],self.scan.ranges[-89:])
 
             if (check_range < avoid_d).any():
                 index = np.where(check_range < avoid_d)[0]
-                index = (index - 89)/2000.0
+                index = (index - 89)/3000.0
                 avoid_error = index.sum()
                 msg.angular.z = avoid_error
                 
@@ -119,7 +137,7 @@ class TurtlebotDriving:
     def plot_trajectory(self, algorithm):
         plt.plot(self.y_history, self.x_history)
         plt.title('Robot Trajectory Solved With '+str(algorithm))
-        plt.axis([max(self.x_history), min(self.x_history), min(self.y_history), max(self.y_history)])
+        plt.axis([10, -10, -10, 10])
         plt.show()
 
 # ---------------------------------------- Callbacks ----------------------------------------
@@ -139,21 +157,30 @@ class TurtlebotDriving:
         self.scan = msg
         self.scan.ranges = np.array(self.scan.ranges)
 
-        
+        front = np.append(self.scan.ranges[0:90], self.scan.ranges[-90:])
+
+        self.region = {
+            'front': min(min(front),10),
+            'left': min(min(msg.ranges[67:113]),10),
+            'right': min(min(msg.ranges[246:293]),10),
+        }
+
 
 # ---------------------------------------- Misc. ----------------------------------------
 
-    def checkObstacle(self, degree=90, distance=0.3):
+
+
+    def checkObstacle(self, degree=90, distance=0.4):
         position = degree//2
         check_range = np.append(self.scan.ranges[0:position], self.scan.ranges[-position:])
         check_range[check_range == 0] = np.inf
         if (check_range < distance).any():
-            print("There is an obstacle")
+            print("Obstacle found")
             return True
         return False
 
     
-    def avoidObstacle(self, degree=90, distance=0.3):
+    def avoidObstacle(self, degree=90, distance=0.4):
         rate = rospy.Rate(10)
         print('avoidObstacle triggered.')
         position = degree//2
@@ -180,31 +207,44 @@ class TurtlebotDriving:
             rate.sleep()
             
         print("No Obstacle detected in this direction")
+
     
 
     def checkRightWall(self, distance):
-        if self.scan.ranges[270]< distance:
+        if self.region['right'] < distance:
             print("Right Wall Detected.")
             return True
 
 
-    def followRightWall(self, distance):
-        twist = Twist()
-        error = distance - self.scan.ranges[270]
-        turn = 0.7
-        rate = rospy.Rate(10)
+    def followRightWall(self, distance=0.5):
 
-        if error < distance:
-            error = distance - self.scan.ranges[270]
-            final_speed = error * turn
-            twist.angular.z = final_speed
-            twist.linear.x = 0.05
-            self.cmd_vel_pub.publish(twist)
-            rate.sleep()
-        elif error > distance:
-            pass
+        print("Following right wall..")
+        msg = Twist()
 
-        print("Lost the right wall")
+        while self.region['front'] < 10 and not rospy.is_shutdown():
+
+            if self.scan.ranges[270] < distance and self.scan.ranges[0] > distance:
+                # move straiight
+                print("straight")
+                msg.linear.x = 0.2
+                msg.angular.z = 0
+                self.cmd_vel_pub.publish(msg)
+                self.rate.sleep() 
+                
+
+            elif self.scan.ranges[270] < distance and self.scan.ranges[0] < distance:
+                # turn left
+                print("left")
+                self.turn(angle=90)
+
+            elif self.scan.ranges[270] > distance:
+                # turn right
+                print("right")
+                self.turn(angle=-90)
+
+            else:
+                pass
+
 
         self.wait(1) 
 
