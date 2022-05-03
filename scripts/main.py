@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # license removed for brevity
-# import rospy
-# from TurtlebotDriving import TurtlebotDriving
+import rospy
+from TurtlebotDriving import TurtlebotDriving
 
 import cv2
 import matplotlib.pyplot as plt
@@ -20,18 +20,20 @@ from algorithm.wallfollower import WallFollower
 from algorithm.randommouse import RandomMouse
 
 config = {
-    "map_dir":"map",
-    "map_info":"map.yaml",
-    "algorithm":"wallfollowing"
+    "map_dir": "map",
+    "map_info":"map1.yaml",
+    "algorithm":"bfs"
 }
 
 def main():
 
     # --------------------------------- Input ---------------------------------
 
+    os.chdir(r'./src/maze_solver')
+
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-    # Map yaml file
+    # open map yaml file
     with open(os.path.join(config["map_dir"], config["map_info"])) as file:
         map_config = yaml.load(file, Loader=yaml.FullLoader)
 
@@ -118,22 +120,33 @@ def main():
         for x,y in path:
             im[x,y] = 1
 
+        # --------------------------------- Move Robot ---------------------------------
+
+        i=0
+
+        while i < (len(path)-2):
+            if path[i][0] == path[i+1][0] == path[i+2][0] or path[i][1] == path[i+1][1] == path[i+2][1]:
+                path.remove(path[i+1])
+
+            else:
+                i+=1
+
+        try:
+            turtlebot = TurtlebotDriving()
+            for i in range(len(path)-1):
+                turtlebot.move(path[i], path[i+1])
+            turtlebot.plot_trajectory(name)
+            turtlebot.relaunch()
+            print("Maze Solved!")
+
+        except rospy.ROSInterruptException:
+            pass
+
+
         plt.imshow(im)
         plt.title("Maze Solution")
         plt.axis("off")
         plt.show()
-
-        # --------------------------------- Move Robot ---------------------------------
-
-        # try:
-        #     turtlebot = TurtlebotDriving()
-        #     turtlebot.move(path)
-        #     turtlebot.plot_trajectory()
-        #     turtlebot.relaunch()
-
-
-        # except rospy.ROSInterruptException:
-        #     pass
 
 
     # --------------------------------- Automous Solving ---------------------------------
@@ -144,4 +157,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

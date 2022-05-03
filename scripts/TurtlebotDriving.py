@@ -2,18 +2,14 @@ import rospy
 import tf
 import matplotlib.pyplot as plt
 import numpy as np
-from std_msgs.msg import String
-from geometry_msgs.msg import Twist, Pose
+from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_srvs.srv import Empty
 from sensor_msgs.msg import LaserScan
-from sensor_msgs.msg import Image
 import math
-import random
 import numpy as np
-import cv2, cv_bridge
 
-class Pose2():
+class Pose2D():
     x = 0
     y = 0
     theta = 0
@@ -22,61 +18,78 @@ class TurtlebotDriving:
     def __init__(self):
         self.x_history = []
         self.y_history = []
+
         rospy.init_node('PythonControl')
-        self.pose = Pose2()
+
+        self.pose = Pose2D()
         self.scan = LaserScan()
-        self.image = None
-        self.depth_img = None
-        self.bridge = cv_bridge.CvBridge()
+        self.rate = rospy.Rate(10)
+        self.kp = 1.5
+       
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1000)
         rospy.Subscriber("odom", Odometry, self.odom_callback)
         rospy.Subscriber("scan", LaserScan, self.scan_callback)
-        rospy.Subscriber('camera/rgb/image_raw', Image, self.image_callback)
-        rospy.Subscriber('camera/depth/image_raw', Image, self.depth_callback)
         rospy.sleep(2)
 
 # ---------------------------------------- Driving ----------------------------------------
 
-    def walk(self, distance, speed=0.2):
-        self.previousX = self.pose.x 
-        self.previousY = self.pose.y
-
-        rate = rospy.Rate(10)
-
-        twist = Twist()
-        twist.linear.x = speed
     
-        travelled_distance = 0
-        
-        while(travelled_distance < distance):
-            self.cmd_vel_pub.publish(twist)
-            print(travelled_distance)
-            dx = self.pose.x - self.previousX
-            dy = self.pose.y - self.previousY
-            travelled_distance = math.sqrt(dx*dx + dy*dy)
-            rate.sleep()
-        
+    def rotate(self, angle, speed = 0.7):
+        angle = angle % (2*math.pi)
+        print("Rotating to "+str(angle)+"radian...")
+        msg = Twist()
+
+        while abs(angle - self.pose.theta) > 0.002 and not rospy.is_shutdown():
+
+            if angle - self.pose.theta < 0:
+                # if desired angle is 0
+                if angle == 0:
+                    if self.pose.theta > math.pi:
+                        msg.angular.z = min(self.kp * abs(angle - self.pose.theta),speed)
+
+                    else:
+                        msg.angular.z = max(self.kp *(angle - self.pose.theta),-speed)
+
+                else:
+                    msg.angular.z = max(self.kp *(angle - self.pose.theta),-speed)
+
+            else:
+                msg.angular.z = min(self.kp *(angle - self.pose.theta),speed)
+
+            self.cmd_vel_pub.publish(msg)
+            self.rate.sleep()
+            
         self.wait(1)
 
 
-
-    def rotate(self, alpha, speed=0.2):
-        self.previousT = self.pose.theta
-        angle  = 2* math.pi * alpha/360 
+    def forward(self, distance, speed=0.3):
         
-        twist = Twist()
-        twist.angular.z = speed    
-        rate = rospy.Rate(10)
+        print("Moving forward...")
 
-        travelled_angle = 0
+        msg = Twist()
+        msg.linear.x = speed
 
-        while travelled_angle < angle:
-            travelled_angle = self.pose.theta - self.previousT
-            if self.pose.theta + 3 < self.previousT:
-                travelled_angle += 6.28
-            self.cmd_vel_pub.publish(twist)
-            print(self.pose.theta)
-            rate.sleep()
+        num_secs = distance / speed
+        avoid_d = 0.5
+ 
+    
+        time = rospy.Time.now().to_sec()
+        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec():
+
+            check_range = np.append(self.scan.ranges[:89],self.scan.ranges[-89:])
+
+            if (check_range < avoid_d).any():
+                index = np.where(check_range < avoid_d)[0]
+                index = (index - 89)/2000.0
+                avoid_error = index.sum()
+                msg.angular.z = avoid_error
+                
+            else:
+                msg.angular.z = 0
+
+            self.cmd_vel_pub.publish(msg)
+            self.rate.sleep()
+
         self.wait(1)
 
 
@@ -84,43 +97,29 @@ class TurtlebotDriving:
     def wait(self, duration):
         wait = Twist()
         time = rospy.Time.now().to_sec()
-        rate = rospy.Rate(10)
 
         while rospy.Time.now().to_sec() - time <= rospy.Duration(duration).to_sec():
             self.cmd_vel_pub.publish(wait)
-            rate.sleep() 
+            self.rate.sleep() 
 
 
 
-    def move(self, path):
-        for i in range(len(path)-1):
-            current = path[i]
-            next = path[i+1]
+    def move(self, current, waypoint):
 
-            difference = tuple(map(lambda i,j: i-j, next, current))
+        difference = tuple(map(lambda i,j: i-j, waypoint, current))
+        inc_x, inc_y = difference
+        angle = math.atan2(inc_y, inc_x)
+        angle = angle - math.pi
+        distance = math.sqrt((waypoint[0] - current[0])**2 + (waypoint[1] - current[1])**2)
 
-            if difference[0]:
-                if i == 0:
-                    self.walk(0.5)
-                else:
-                    self.rotate(-90)
-                    self.walk(0.5)
-
-            if difference[1]:
-                self.rotate(90)
-                self.walk(0.5)
-                
-                
-
-    def orient(self, desired_angle):
-        self.previousT = self.pose.theta
-        desired_angle = 2* math.pi * desired_angle/360
+        self.rotate(angle)
+        self.forward(distance)
             
 
-    def plot_trajectory(self):
-        plt.plot(self.x_history, self.y_history)
-        plt.xticks(np.arange(-2, 3, 1.0))
-        plt.yticks(np.arange(-2, 3, 1.0))
+    def plot_trajectory(self, algorithm):
+        plt.plot(self.y_history, self.x_history)
+        plt.title('Robot Trajectory Solved With '+str(algorithm))
+        plt.axis([max(self.x_history), min(self.x_history), min(self.y_history), max(self.y_history)])
         plt.show()
 
 # ---------------------------------------- Callbacks ----------------------------------------
@@ -129,7 +128,7 @@ class TurtlebotDriving:
         quarternion = [msg.pose.pose.orientation.x,msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
         (roll, pitch, yaw) = tf.transformations.euler_from_quaternion(quarternion)
 
-        self.pose.theta = yaw
+        self.pose.theta = yaw % (2*math.pi)
         self.pose.x = msg.pose.pose.position.x
         self.pose.y = msg.pose.pose.position.y
         self.x_history.append(self.pose.x)
@@ -140,24 +139,11 @@ class TurtlebotDriving:
         self.scan = msg
         self.scan.ranges = np.array(self.scan.ranges)
 
-
-    def image_callback(self, msg):
-        image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        (h, w) = image.shape[:2]
-        image_resized = cv2.resize(image, (w/4,h/4))
-        self.image = image_resized
-
-
-    def depth_callback(self, msg):
-        image = self.bridge.imgmsg_to_cv2(msg,'passthrough')
-        (h, w) = image.shape[:2]
-        image_resized = cv2.resize(image, (w/4,h/4))
-        self.depth_img = image_resized
         
 
 # ---------------------------------------- Misc. ----------------------------------------
 
-    def checkObstacle(self, degree=75, distance=0.5):
+    def checkObstacle(self, degree=90, distance=0.3):
         position = degree//2
         check_range = np.append(self.scan.ranges[0:position], self.scan.ranges[-position:])
         check_range[check_range == 0] = np.inf
@@ -167,7 +153,7 @@ class TurtlebotDriving:
         return False
 
     
-    def avoidObstacle(self, degree=75, distance=0.5):
+    def avoidObstacle(self, degree=90, distance=0.3):
         rate = rospy.Rate(10)
         print('avoidObstacle triggered.')
         position = degree//2
@@ -189,9 +175,8 @@ class TurtlebotDriving:
             self.cmd_vel_pub.publish(twist)
             check_range = np.append(self.scan.ranges[0:position], self.scan.ranges[-position:])
             check_range[check_range == 0] = np.inf
-            has_obstacle = False
-            if (check_range < distance).any():
-                has_obstacle = True
+            if (check_range > distance).any():
+                has_obstacle = False
             rate.sleep()
             
         print("No Obstacle detected in this direction")
