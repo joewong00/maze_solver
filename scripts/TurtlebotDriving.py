@@ -27,7 +27,7 @@ class TurtlebotDriving:
         self.pose = Pose2D()
         self.scan = LaserScan()
         self.rate = rospy.Rate(10)
-        self.kp = 1.5
+        self.kp = 1.6
        
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1000)
         rospy.Subscriber("odom", Odometry, self.odom_callback)
@@ -36,65 +36,92 @@ class TurtlebotDriving:
 
 # ---------------------------------------- Driving ----------------------------------------
 
-    
-    def turn(self, angle, speed = 0.2):
-        angle  = 2* math.pi * angle/360 
-        num_secs = angle / speed
-        twist = Twist()
-        twist.angular.z = speed
 
-        rate = rospy.Rate(10)
-        time = rospy.Time.now().to_sec()
-        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec():
-            self.cmd_vel_pub.publish(twist)
-            rate.sleep()
+    def turn(self, angle, speed = 0.7):
 
-        self.wait(1)
+        # angle (+) = counterclockwise
+        # angle (-) = clockwise
 
+        print("Rotating "+str(angle)+"radian...")
 
-    def rotate(self, angle, speed = 0.7):
-        angle = angle % (2*math.pi)
-        print("Rotating to "+str(angle)+"radian...")
+        theta_init = self.pose.theta
         msg = Twist()
+        travelled_angle = 0
+        clockwise = np.sign(angle)
+        angle = abs(angle)
 
-        while abs(angle - self.pose.theta) > 0.002 and not rospy.is_shutdown():
+        while abs(angle - travelled_angle) > 0.0015 and not rospy.is_shutdown():
 
-            if angle - self.pose.theta < 0:
-                # if desired angle is 0
-                if angle == 0:
-                    if self.pose.theta > math.pi:
-                        msg.angular.z = min(self.kp * abs(angle - self.pose.theta),speed)
+            msg.angular.z = clockwise * min(self.kp * abs(angle - travelled_angle) , speed)
 
-                    else:
-                        msg.angular.z = max(self.kp *(angle - self.pose.theta),-speed)
+            # If clockwise
+            if clockwise < 0:
 
-                else:
-                    msg.angular.z = max(self.kp *(angle - self.pose.theta),-speed)
+                travelled_angle = theta_init - self.pose.theta
 
+                # If pass through angle 0
+                if self.pose.theta > theta_init:
+                    travelled_angle += 2*math.pi
+
+            # Counter-clockwise
             else:
-                msg.angular.z = min(self.kp *(angle - self.pose.theta),speed)
+                travelled_angle = self.pose.theta - theta_init
+
+                # If pass through angle 0
+                if self.pose.theta < theta_init:
+                    travelled_angle += 2*math.pi
 
             self.cmd_vel_pub.publish(msg)
             self.rate.sleep()
-            
+
         self.wait(1)
+
+
+    def rotateTo(self, angle, speed = 0.7):
+        angle = angle % (2*math.pi)
+        print("Rotating to "+str(angle)+"radian...")
+
+        direction = 1
+        angle_to_turn = abs(angle - self.pose.theta)
+
+        # Minimum turning angle
+        if angle_to_turn > math.pi:
+            angle_to_turn = 2*math.pi - angle_to_turn
+
+
+        # Determine turning direction
+        if angle != 3*math.pi/2:
+            if angle < self.pose.theta <= angle + 3.14:
+                direction = -1
+
+        else:
+            if self.pose.theta > angle or self.pose.theta < angle - math.pi:
+                direction = -1
+
+        # Turn for certain angle
+        self.turn(direction * angle_to_turn, speed)
 
 
     def forward(self, distance, speed=0.3):
         
-        print("Moving forward...")
+        print("Moving forward "+str(distance)+"m ...")
 
         msg = Twist()
-        msg.linear.x = speed
 
-        num_secs = distance / speed
+        # Robot's initial position
+        x_init = self.pose.x
+        y_init = self.pose.y
+
         avoid_d = 0.5
- 
-    
-        time = rospy.Time.now().to_sec()
-        while rospy.Time.now().to_sec() - time < rospy.Duration(num_secs).to_sec() and not rospy.is_shutdown():
+        travelled_distance = 0
 
+ 
+        # While not up to desired distance
+        while distance - travelled_distance > 0.005 and not rospy.is_shutdown():
+        
+            # Avoid obstacle on the front
             check_range = np.append(self.scan.ranges[:89],self.scan.ranges[-89:])
+            msg.linear.x = min(self.kp * abs(distance - travelled_distance) ,speed)
 
             if (check_range < avoid_d).any():
                 index = np.where(check_range < avoid_d)[0]
@@ -105,7 +132,11 @@ class TurtlebotDriving:
             else:
                 msg.angular.z = 0
 
+            # Calculate travelled distance
+            travelled_distance = math.sqrt((self.pose.x - x_init)**2 + (self.pose.y - y_init)**2)
             self.cmd_vel_pub.publish(msg)
+
+            # print(travelled_distance)
             self.rate.sleep()
 
         self.wait(1)
@@ -130,7 +161,7 @@ class TurtlebotDriving:
         angle = angle - math.pi
         distance = math.sqrt((waypoint[0] - current[0])**2 + (waypoint[1] - current[1])**2)
 
-        self.rotate(angle)
+        self.rotateTo(angle)
         self.forward(distance)
             
 
@@ -157,13 +188,18 @@ class TurtlebotDriving:
         self.scan = msg
         self.scan.ranges = np.array(self.scan.ranges)
 
-        front = np.append(self.scan.ranges[0:90], self.scan.ranges[-90:])
-
         self.region = {
-            'front': min(min(front),10),
-            'left': min(min(msg.ranges[67:113]),10),
-            'right': min(min(msg.ranges[246:293]),10),
+            'frontwide': min(min(np.append(self.scan.ranges[0:90], self.scan.ranges[-90:])),10),
+            'front': min(min(np.append(self.scan.ranges[0:20], self.scan.ranges[-20:])),10),
+            'left': min(min(msg.ranges[70:110]),10),
+            'right': min(min(msg.ranges[250:290]),10),
         }
+
+        self.front = min(msg.ranges[0], 10)
+        self.right = min(msg.ranges[270], 10)
+        self.rightup = min(msg.ranges[315], 10)
+        self.rightdown = min(msg.ranges[225], 10)
+
 
 
 # ---------------------------------------- Misc. ----------------------------------------
@@ -209,7 +245,6 @@ class TurtlebotDriving:
         print("No Obstacle detected in this direction")
 
     
-
     def checkRightWall(self, distance):
         if self.region['right'] < distance:
             print("Right Wall Detected.")
@@ -218,35 +253,39 @@ class TurtlebotDriving:
 
     def followRightWall(self, distance=0.5):
 
-        print("Following right wall..")
+        rate = rospy.Rate(20)
         msg = Twist()
+        kp = 0.2
 
-        while self.region['front'] < 10 and not rospy.is_shutdown():
+        while self.region['frontwide'] < 10 and not rospy.is_shutdown():
 
-            if self.scan.ranges[270] < distance and self.scan.ranges[0] > distance:
-                # move straiight
-                print("straight")
-                msg.linear.x = 0.2
-                msg.angular.z = 0
-                self.cmd_vel_pub.publish(msg)
-                self.rate.sleep() 
-                
+            # Wall infront
+            if self.front < distance:
+                if self.right < distance:
+                    print("Front wall, turning left")
+                    self.turn(math.pi/2)
 
-            elif self.scan.ranges[270] < distance and self.scan.ranges[0] < distance:
-                # turn left
-                print("left")
-                self.turn(angle=90)
+                else:
+                    print("Front wall, turning right")
+                    self.turn(-math.pi/2)
 
-            elif self.scan.ranges[270] > distance:
-                # turn right
-                print("right")
-                self.turn(angle=-90)
-
+            # No wall infront
             else:
-                pass
+                if self.right <= distance:
+                    print("Going straight")
+                    msg.linear.x = 0.3
+                    err = self.rightdown - self.rightup 
+                    msg.angular.z = kp * err
 
+                else:
+                    print("Turning right")
+                    self.forward(0.4)
+                    self.turn(-math.pi/2)
+                    
 
-        self.wait(1) 
+            
+            self.cmd_vel_pub.publish(msg)
+            rate.sleep()
 
 
     def relaunch(self):
