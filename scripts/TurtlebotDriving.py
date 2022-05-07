@@ -1,5 +1,4 @@
-from dis import dis
-from tabnanny import check
+
 import rospy
 import tf
 import matplotlib.pyplot as plt
@@ -188,18 +187,20 @@ class TurtlebotDriving:
         self.scan = msg
         self.scan.ranges = np.array(self.scan.ranges)
 
-        self.region = {
-            'frontwide': min(min(np.append(self.scan.ranges[0:90], self.scan.ranges[-90:])),10),
-            'front': min(min(np.append(self.scan.ranges[0:20], self.scan.ranges[-20:])),10),
-            'left': min(min(msg.ranges[70:110]),10),
-            'right': min(min(msg.ranges[250:290]),10),
-        }
+        # self.region = {
+        #     'frontwide': min(min(np.append(self.scan.ranges[0:90], self.scan.ranges[-90:])),10),
+        #     'front': min(min(np.append(self.scan.ranges[0:20], self.scan.ranges[-20:])),10),
+        #     'left': min(min(msg.ranges[70:110]),10),
+        #     'right': min(min(msg.ranges[250:290]),10),
+        # }
 
-        self.front = min(msg.ranges[0], 10)
-        self.right = min(msg.ranges[270], 10)
-        self.rightup = min(msg.ranges[315], 10)
-        self.rightdown = min(msg.ranges[225], 10)
-
+        # self.front = min(msg.ranges[0], 10)
+        # self.right = min(msg.ranges[270], 10)
+        # self.rightup = min(msg.ranges[315], 10)
+        # self.rightdown = min(msg.ranges[225], 10)
+        # self.left = min(msg.ranges[90], 10)
+        # self.leftcorner = min(msg.ranges[45], 10)
+        # self.leftdown =  min(msg.ranges[135], 10)
 
 
 # ---------------------------------------- Misc. ----------------------------------------
@@ -251,44 +252,65 @@ class TurtlebotDriving:
             return True
 
 
-    def followRightWall(self, distance=0.5):
+    def followWall(self, distance=0.5, speed=0.2, side=1):
 
         rate = rospy.Rate(20)
         msg = Twist()
-        kp = 0.2
+        speed = 5
+        kp = 0.05
 
         while self.region['frontwide'] < 10 and not rospy.is_shutdown():
 
-            # Wall infront
-            if self.front < distance:
-                if self.right < distance:
-                    print("Front wall, turning left")
-                    self.turn(math.pi/2)
+            
+            if self.front < 0.5:
+                print("Turn right in place")
+                wl = speed
+                wr = -speed
 
-                else:
-                    print("Front wall, turning right")
-                    self.turn(-math.pi/2)
+                v,a = self.forward_kinematics(wl,wr)
+                msg.linear.x = v
+                msg.angular.z = a
 
-            # No wall infront
             else:
-                if self.right <= distance:
-                    print("Going straight")
-                    msg.linear.x = 0.3
-                    err = self.rightdown - self.rightup 
+                if self.left < distance:
+                    print("Forward")
+                    msg.linear.x = 0.2
+                    err = self.leftcorner - self.leftdown 
                     msg.angular.z = kp * err
 
                 else:
-                    print("Turning right")
-                    self.forward(0.4)
-                    self.turn(-math.pi/2)
-                    
+                    print("Turn left")
+                    wl = -speed/20
+                    wr = speed
+
+                    v,a = self.forward_kinematics(wl,wr)
+                    msg.linear.x = v
+                    msg.angular.z = a
+
+                # if self.leftcorner < 0.5:
+                #     print("Too close, drive right")
+                #     wl = speed
+                #     wr = speed/8
+
+                #     v,a = self.forward_kinematics(wl,wr)
+                #     msg.linear.x = v
+                #     msg.angular.z = a
 
             
             self.cmd_vel_pub.publish(msg)
             rate.sleep()
 
 
+    def forward_kinematics(self, w_l, w_r):
+        c_l = 0.033 * w_l
+        c_r = 0.033 * w_r
+        v = (c_l + c_r)/2
+        a = 0.5 * (c_r - c_l)/ 0.08
+
+        return (v,a)
+
     def relaunch(self):
         service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
         service()
         self.__init__()
+
