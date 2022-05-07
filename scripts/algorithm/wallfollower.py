@@ -28,7 +28,9 @@ class WallFollower():
         rospy.sleep(2)
 
 
-    def update_command_vel(self, linear_vel, angular_vel):
+    def update_vel(self, linear_vel, angular_vel):
+        """Update the turtlebot velocity."""
+
         msg = Twist()
         msg.linear.x = linear_vel
         msg.angular.z = angular_vel
@@ -89,8 +91,9 @@ class WallFollower():
             print('- distance to wall: ', str(self.distance_wall))
             print('')
 
+            # If the front region has no obstacle, exit is reached
             while self.regions['frontwide'] < 10 and not rospy.is_shutdown():
-                self.update_command_vel(self.speed, self.g_alpha)
+                self.update_vel(self.speed, self.g_alpha)
                 self.rate.sleep()
 
 

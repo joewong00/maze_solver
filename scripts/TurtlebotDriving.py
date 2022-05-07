@@ -37,14 +37,12 @@ class TurtlebotDriving:
 
 
     def turn(self, angle, speed = 0.7):
-        """Rotate the turtlebot for a certain angle
+        """Rotate the turtlebot for a certain angle.
 
-        Args
-
+        Args:
+            angle (float): Angle to turn in radian (+) for counterclockwise and (-) for clockwise turning
+            speed (float): Angular velocity for the rotation
         """
-
-        # angle (+) = counterclockwise
-        # angle (-) = clockwise
 
         print("Rotating "+str(angle)+"radian...")
 
@@ -82,6 +80,13 @@ class TurtlebotDriving:
 
 
     def rotateTo(self, angle, speed = 0.7):
+        """Rotate the turtlebot to a desired angle.
+
+        Args:
+            angle (float): Desired angle in radian (Top: 0, Left: pi/2, Bottom: pi, Right: -pi/2)
+            speed (float): Angular velocity for the rotation
+        """
+
         angle = angle % (2*math.pi)
         print("Rotating to "+str(angle)+"radian...")
 
@@ -108,6 +113,13 @@ class TurtlebotDriving:
 
 
     def forward(self, distance, speed=0.3):
+        """Move turtlebot forward for a certain distance.
+
+        Args:
+            distance (float): Distance to move the turtlebot forward (positive only)
+            speed (float): Linear velocity for the movement
+        
+        """
         
         print("Moving forward "+str(distance)+"m ...")
 
@@ -149,6 +161,13 @@ class TurtlebotDriving:
 
 
     def wait(self, duration):
+        """Wait and stop for a specified duration.
+
+        Args:
+            duration (float): Time in second to wait
+        
+        """
+        
         wait = Twist()
         time = rospy.Time.now().to_sec()
 
@@ -159,6 +178,13 @@ class TurtlebotDriving:
 
 
     def move(self, current, waypoint):
+        """Move turtlebot to a certain waypoint from current position.
+
+        Args:
+            current (tuple): x and y coordinate of the current position
+            waypoint (tuple): x and y coordinate of the destination point
+        
+        """
 
         difference = tuple(map(lambda i,j: i-j, waypoint, current))
         inc_x, inc_y = difference
@@ -171,6 +197,8 @@ class TurtlebotDriving:
             
 
     def stop(self):
+        """Stop the turtlebot from moving."""
+
         msg = Twist()
         msg.linear.x = 0
         msg.angular.z = 0

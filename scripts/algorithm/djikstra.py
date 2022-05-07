@@ -29,7 +29,7 @@ class Djikstra:
 
         nodeindex = [None] * self.dim
 
-        # To begin, we set the distance to the start to zero (we're there) and add it into the unvisited queue
+        # Distance to the start node is 0, add to queue
         distances[self.start.position[0] * self.width + self.start.position[1]] = 0
         startnode = HeapNode(0,self.start)
 
@@ -41,10 +41,10 @@ class Djikstra:
             count += 1
 
             # remove node that has the minimum cost
-            n = unvisited.removeminimum()
+            heapnode = unvisited.removeminimum()
 
-            # Current node u, all neighbours will be v
-            u = n.value
+            # u is current node, v is all its neighbours
+            u = heapnode.value
             upos = u.position
 
             uposindex = upos[0] * self.width + upos[1]
@@ -52,7 +52,7 @@ class Djikstra:
             if distances[uposindex] == inf:
                 break
 
-            # If upos == endpos, we're done!
+            # Reaching end node
             if upos == self.end.position:
                 completed = True
                 break
@@ -65,16 +65,16 @@ class Djikstra:
                     if visited[vposindex] == False:
                         # The extra distance from where we are (upos) to the neighbour (vpos) (manhattan distance)
                         
-                        d = abs(vpos[0] - upos[0]) + abs(vpos[1] - upos[1])
+                        distance = abs(vpos[0] - upos[0]) + abs(vpos[1] - upos[1])
 
                         # New path cost to v is distance to u + extra
-                        newdistance = distances[uposindex] + d
+                        newdistance = distances[uposindex] + distance
 
                         # If this new distance is the new shortest path to v
                         if newdistance < distances[vposindex]:
                             vnode = nodeindex[vposindex]
 
-                            # v isn't already in the priority queue - add it
+                            # Add v into the queue if not inside
                             if vnode == None:
                                 vnode = HeapNode(newdistance,v)
                                 unvisited.insert(vnode)
@@ -82,7 +82,7 @@ class Djikstra:
                                 distances[vposindex] = newdistance
                                 previous[vposindex] = u
 
-                            # v is already in the queue - decrease its key to re-prioritise it
+                            # Decrease v's value if it is in the queue
                             else:
                                 unvisited.decreasekey(vnode, newdistance)
                                 distances[vposindex] = newdistance

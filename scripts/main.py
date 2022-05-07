@@ -157,6 +157,8 @@ def main():
 
 
     # --------------------------------- Automous Solving ---------------------------------
+
+    # Wall Following
     else:
 
         t0 = time.time()
@@ -170,7 +172,6 @@ def main():
             print("\nNo path found")
             
         print("Time elapsed:", t1-t0, "\n")
-
 
 
 if __name__ == '__main__':
