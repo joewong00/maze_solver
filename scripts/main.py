@@ -17,7 +17,6 @@ from algorithm.breadthfirst import BFS
 from algorithm.depthfirst import DFS
 from algorithm.djikstra import Djikstra
 from algorithm.wallfollower import WallFollower
-from algorithm.randommouse import RandomMouse
 
 config = {
     "map_dir": "map",
@@ -62,29 +61,31 @@ def main():
     if config["algorithm"].casefold() == "bfs":
         name = "Breadth First Search"
         algorithm = BFS(maze)
+
     
     elif config["algorithm"].casefold() == "dfs":
         name = "Depth First Search"
         algorithm = DFS(maze)
 
+
     elif config["algorithm"].casefold() == "djikstra":
         name = "Djikstra's Algorithm"
         algorithm = Djikstra(maze)
+
 
     elif config["algorithm"].casefold() == "astar":
         name = "A Star Algorithm"
         algorithm = AStar(maze)
 
-    elif config["algorithm"].casefold() == "wallfollowing":
-        name = "Right Wall Following"
-        algorithm = WallFollower()
 
-    elif config["algorithm"].casefold() == "randommouse":
-        name = "Random Mouse Algorithm"
-        algorithm = RandomMouse()
+    # Right wall or Left wall can be specified
+    elif config["algorithm"].casefold() == "wallfollowing":
+        name = "Wall Following"
+        algorithm = WallFollower(speed=0.2, distance=0.4, side="right")
+
 
     else:
-        raise Exception('Algorithm specified not available (BFS, DFS, Astar, Djikstra, WallFollowing, RandomMouse)')
+        raise Exception('Algorithm specified not available (BFS, DFS, Astar, Djikstra, WallFollowing)')
     
     # --------------------------------- Solve Maze ---------------------------------
 
@@ -95,7 +96,7 @@ def main():
     ''')
 
     # BFS, DFS, Djikstra, Astar
-    if name not in ("Right Wall Following", "Random Mouse Algorithm"):
+    if name != "Wall Following":
 
         t0 = time.time()
         path, count, length, completed = algorithm.solve()
@@ -133,11 +134,16 @@ def main():
 
         try:
             bot = TurtlebotDriving()
+            t0 = time.time()
+
             for i in range(len(path)-1):
                 bot.move(path[i], path[i+1])
+
+            t1 = time.time()
             print("Maze Solved!")
             bot.plot_trajectory(name)
             bot.relaunch()
+            print("Time taken :",t1-t0,"s\n")
             
 
         except rospy.ROSInterruptException:
@@ -154,17 +160,14 @@ def main():
     else:
 
         t0 = time.time()
-        algorithm.run()
+        completed = algorithm.run()
         t1 = time.time()
 
-        # if completed:
-        #     print("\nPath found:")
-        #     print(path)
-        #     print("Node explored:", count)
-        #     print("Path length:", length)
+        if completed:
+            print("Time taken :",t1-t0,"s\n")
         
-        # else:
-        #     print("\nNo path found")
+        else:
+            print("\nNo path found")
             
         print("Time elapsed:", t1-t0, "\n")
 

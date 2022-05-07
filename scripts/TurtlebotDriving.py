@@ -37,6 +37,11 @@ class TurtlebotDriving:
 
 
     def turn(self, angle, speed = 0.7):
+        """Rotate the turtlebot for a certain angle
+
+        Args
+
+        """
 
         # angle (+) = counterclockwise
         # angle (-) = clockwise
@@ -99,6 +104,7 @@ class TurtlebotDriving:
 
         # Turn for certain angle
         self.turn(direction * angle_to_turn, speed)
+
 
 
     def forward(self, distance, speed=0.3):
@@ -164,11 +170,14 @@ class TurtlebotDriving:
         self.forward(distance)
             
 
-    def plot_trajectory(self, algorithm):
-        plt.plot(self.y_history, self.x_history)
-        plt.title('Robot Trajectory Solved With '+str(algorithm))
-        plt.axis([10, -10, -10, 10])
-        plt.show()
+    def stop(self):
+        msg = Twist()
+        msg.linear.x = 0
+        msg.angular.z = 0
+
+        self.cmd_vel_pub.publish(msg)
+        self.rate.sleep()
+    
 
 # ---------------------------------------- Callbacks ----------------------------------------
 
@@ -187,20 +196,7 @@ class TurtlebotDriving:
         self.scan = msg
         self.scan.ranges = np.array(self.scan.ranges)
 
-        # self.region = {
-        #     'frontwide': min(min(np.append(self.scan.ranges[0:90], self.scan.ranges[-90:])),10),
-        #     'front': min(min(np.append(self.scan.ranges[0:20], self.scan.ranges[-20:])),10),
-        #     'left': min(min(msg.ranges[70:110]),10),
-        #     'right': min(min(msg.ranges[250:290]),10),
-        # }
-
-        # self.front = min(msg.ranges[0], 10)
-        # self.right = min(msg.ranges[270], 10)
-        # self.rightup = min(msg.ranges[315], 10)
-        # self.rightdown = min(msg.ranges[225], 10)
-        # self.left = min(msg.ranges[90], 10)
-        # self.leftcorner = min(msg.ranges[45], 10)
-        # self.leftdown =  min(msg.ranges[135], 10)
+        self.scan_max_value = msg.range_max
 
 
 # ---------------------------------------- Misc. ----------------------------------------
@@ -245,61 +241,6 @@ class TurtlebotDriving:
             
         print("No Obstacle detected in this direction")
 
-    
-    def checkRightWall(self, distance):
-        if self.region['right'] < distance:
-            print("Right Wall Detected.")
-            return True
-
-
-    def followWall(self, distance=0.5, speed=0.2, side=1):
-
-        rate = rospy.Rate(20)
-        msg = Twist()
-        speed = 5
-        kp = 0.05
-
-        while self.region['frontwide'] < 10 and not rospy.is_shutdown():
-
-            
-            if self.front < 0.5:
-                print("Turn right in place")
-                wl = speed
-                wr = -speed
-
-                v,a = self.forward_kinematics(wl,wr)
-                msg.linear.x = v
-                msg.angular.z = a
-
-            else:
-                if self.left < distance:
-                    print("Forward")
-                    msg.linear.x = 0.2
-                    err = self.leftcorner - self.leftdown 
-                    msg.angular.z = kp * err
-
-                else:
-                    print("Turn left")
-                    wl = -speed/20
-                    wr = speed
-
-                    v,a = self.forward_kinematics(wl,wr)
-                    msg.linear.x = v
-                    msg.angular.z = a
-
-                # if self.leftcorner < 0.5:
-                #     print("Too close, drive right")
-                #     wl = speed
-                #     wr = speed/8
-
-                #     v,a = self.forward_kinematics(wl,wr)
-                #     msg.linear.x = v
-                #     msg.angular.z = a
-
-            
-            self.cmd_vel_pub.publish(msg)
-            rate.sleep()
-
 
     def forward_kinematics(self, w_l, w_r):
         c_l = 0.033 * w_l
@@ -308,6 +249,14 @@ class TurtlebotDriving:
         a = 0.5 * (c_r - c_l)/ 0.08
 
         return (v,a)
+
+
+    def plot_trajectory(self, algorithm):
+        plt.plot(self.y_history, self.x_history)
+        plt.title('Robot Trajectory with '+str(algorithm))
+        plt.axis([10, -10, -10, 10])
+        plt.show()
+
 
     def relaunch(self):
         service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
