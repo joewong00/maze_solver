@@ -58,16 +58,13 @@ class Maze:
                     continue
 
                 if prev:
+                    n = Maze.Node((x,y))
+                    left.neighbours[1] = n
+                    n.neighbours[3] = left
+                    
                     if next:
-                        n = Maze.Node((x,y))
-                        left.neighbours[1] = n
-                        n.neighbours[3] = left
                         left = n
-
                     else:
-                        n = Maze.Node((x,y))
-                        left.neighbours[1] = n
-                        n.neighbours[3] = left
                         left = None
 
                 else:
