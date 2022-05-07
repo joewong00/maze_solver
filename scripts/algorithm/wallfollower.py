@@ -25,7 +25,7 @@ class WallFollower():
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1000)
         rospy.Subscriber("scan", LaserScan, self.scan_callback)
         print(f'Follow wall from the {side}...')
-        rospy.sleep(2)
+        rospy.sleep(1)
 
 
     def update_vel(self, linear_vel, angular_vel):
@@ -61,21 +61,21 @@ class WallFollower():
 
         # If the robot is heading into the wall, turn sideways
         if y0 >= self.distance_wall * 2 and self.regions['N'] < scan_max_value:
-            print("Turn sideways!")
+            print("Turning sideways")
             self.g_alpha = -math.pi / 4 * self.side
 
         else:
             # Check scan info from the front of the robot
             front_scan = min([self.regions['N'], self.regions['NNW'] + (scan_max_value - self.regions['WNW']), self.regions['NNE'] + (scan_max_value - self.regions['ENE'])])
 
-            # If there is a wall close, adjust turn to not hit it (important for inner corners/turns)
+            # If there is a wall, adjust turn
             turn_fix = (0 if front_scan >= 0.5 else 1 - front_scan)
 
             # Calculate angular velocity to keep wall distance
             abs_alpha = math.atan2(y1 - self.distance_wall,
                                 x1 + self.wall_lead - y0) - turn_fix * 1.5
             
-            # Choose correct direction for angular velocity
+            # Angular velocity direction
             self.g_alpha = self.side * abs_alpha
 
 
@@ -86,9 +86,8 @@ class WallFollower():
 
             completed = False
 
-            print('Starting with values:')
-            print('- linear speed: ', str(self.speed))
-            print('- distance to wall: ', str(self.distance_wall))
+            print('1) Linear speed: ', str(self.speed))
+            print('2) Distance to wall: ', str(self.distance_wall))
             print('')
 
             # If the front region has no obstacle, exit is reached

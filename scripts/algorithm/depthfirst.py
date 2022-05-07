@@ -23,14 +23,13 @@ class DFS():
         count = 0
 
         completed = False
+
+        visited[self.start.position[0] * self.width + self.start.position[1]] = True
         
         # DFS 
         while stack:
             count += 1
             current = stack.pop()
-
-            # visit cell
-            visited[current.position[0] * self.width + current.position[1]] = True
 
             if current == self.end:
                 completed = True
@@ -47,6 +46,7 @@ class DFS():
                     # neighbour not visited yet
                     if visited[nodepos] == False:
                         stack.append(n)
+                        visited[nodepos] = True
                         previous[nodepos] = current
 
         

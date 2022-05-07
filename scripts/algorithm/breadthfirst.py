@@ -1,4 +1,3 @@
-
 from collections import deque
 class BFS():
     def __init__(self, maze):
@@ -24,14 +23,13 @@ class BFS():
         count = 0
 
         completed = False
+
+        visited[self.start.position[0] * self.width + self.start.position[1]] = True
         
         # BFS 
         while frontier:
             count += 1
             current = frontier.pop()
-
-            # visit cell
-            visited[current.position[0] * self.width + current.position[1]] = True
 
             if current == self.end:
                 completed = True
@@ -48,6 +46,7 @@ class BFS():
                     # neighbour not visited yet
                     if visited[nodepos] == False:
                         frontier.appendleft(n)
+                        visited[nodepos] = True
                         previous[nodepos] = current
 
         
