@@ -5,6 +5,7 @@ from TurtlebotDriving import TurtlebotDriving
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
 import math
+import time
 
 class WallFollower():
     def __init__(self, speed, distance_wall, side):
@@ -90,11 +91,12 @@ class WallFollower():
             print('2) Distance to wall: ', str(self.distance_wall))
             print('')
 
+            t0 = time.time()
             # If the front region has no obstacle, exit is reached
             while self.regions['frontwide'] < 10 and not rospy.is_shutdown():
                 self.update_vel(self.speed, self.g_alpha)
                 self.rate.sleep()
-
+            t1 = time.time()
 
             print("Maze Solved!")
             bot.stop()
@@ -103,7 +105,7 @@ class WallFollower():
             bot.relaunch()
             completed = True
 
-            return path, len(path), completed
+            return path, len(path), t1-t0, completed
 
         except rospy.ROSInterruptException:
             pass

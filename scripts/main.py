@@ -21,7 +21,7 @@ from algorithm.wallfollower import WallFollower
 config = {
     "map_dir": "map",
     "map_info":"map3.yaml",
-    "algorithm":"dfs"
+    "algorithm":"wallfollowing"
 }
 
 def main():
@@ -159,9 +159,7 @@ def main():
     # Wall Following
     else:
 
-        t0 = time.time()
-        path, length, completed = algorithm.run()
-        t1 = time.time()
+        path, length, timetaken, completed = algorithm.run()
 
         if completed:
             print("Path found:")
@@ -171,7 +169,7 @@ def main():
         else:
             print("\nNo path found")
 
-        print("Time taken :",t1-t0,"s\n")
+        print("Time taken :",timetaken,"s\n")
 
 
         # --------------------------------- Output Image ---------------------------------
