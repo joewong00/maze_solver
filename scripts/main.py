@@ -20,8 +20,8 @@ from algorithm.wallfollower import WallFollower
 
 config = {
     "map_dir": "map",
-    "map_info":"map2.yaml",
-    "algorithm":"wallfollowing"
+    "map_info":"map3.yaml",
+    "algorithm":"dfs"
 }
 
 def main():
