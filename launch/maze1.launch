@@ -6,7 +6,7 @@
   <arg name="yaw" default="3.14159265"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find maze_solver)/worlds/my_world.world"/>
+    <arg name="world_name" value="$(find maze_solver)/worlds/world1.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>

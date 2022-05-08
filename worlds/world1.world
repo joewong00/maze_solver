@@ -17,9 +17,9 @@
        <uri>model://ground_plane</uri>
      </include>
 
-     <!-- My maze -->
+     <!-- Maze -->
      <include>
-       <uri>model://maze</uri>
+       <uri>model://maze1</uri>
  	     <pose>-0.25 2.125 0 0 0 0</pose>
      </include>
 

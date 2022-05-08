@@ -1,6 +1,6 @@
 from collections import deque
 from algorithm.heapPQ import HeapPQ, HeapNode
-class Djikstra:
+class Dijkstra:
     def __init__(self, maze):
 
         self.width = maze.width

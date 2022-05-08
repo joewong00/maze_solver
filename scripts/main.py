@@ -15,7 +15,7 @@ from maze import Maze
 from algorithm.astar import AStar
 from algorithm.breadthfirst import BFS
 from algorithm.depthfirst import DFS
-from algorithm.djikstra import Djikstra
+from algorithm.dijkstra import Dijkstra
 from algorithm.wallfollower import WallFollower
 
 config = {
@@ -68,9 +68,9 @@ def main():
         algorithm = DFS(maze)
 
 
-    elif config["algorithm"].casefold() == "djikstra":
-        name = "Djikstra's Algorithm"
-        algorithm = Djikstra(maze)
+    elif config["algorithm"].casefold() == "dijkstra":
+        name = "Dijkstra's Algorithm"
+        algorithm = Dijkstra(maze)
 
 
     elif config["algorithm"].casefold() == "astar":
@@ -81,11 +81,11 @@ def main():
     # Right wall or Left wall can be specified
     elif config["algorithm"].casefold() == "wallfollowing":
         name = "Wall Following"
-        algorithm = WallFollower(speed=0.2, distance=0.4, side="right")
+        algorithm = WallFollower(speed=0.2, distance_wall=0.4, side="right")
 
 
     else:
-        raise Exception('Algorithm specified not available (BFS, DFS, Astar, Djikstra, WallFollowing)')
+        raise Exception('Algorithm specified not available (BFS, DFS, Astar, Dijkstra, WallFollowing)')
     
     # --------------------------------- Solve Maze ---------------------------------
 
@@ -103,7 +103,7 @@ def main():
         t1 = time.time()
 
         if completed:
-            print("\nPath found:")
+            print("Path found:")
             print(path)
             print("Node explored:", count)
             print("Path length:", length)
@@ -115,11 +115,9 @@ def main():
 
         # --------------------------------- Output Image ---------------------------------
 
-        size = int(20//map_config["resolution"])
-        im = np.zeros((size,size))
-
+        input = (input==0).astype(int)
         for x,y in path:
-            im[x,y] = 1
+            input[x,y] = 2
 
         # --------------------------------- Move Robot ---------------------------------
 
@@ -140,6 +138,7 @@ def main():
                 bot.move(path[i], path[i+1])
 
             t1 = time.time()
+
             print("Maze Solved!")
             bot.plot_trajectory(name)
             bot.relaunch()
@@ -149,8 +148,7 @@ def main():
         except rospy.ROSInterruptException:
             pass
 
-
-        plt.imshow(im)
+        plt.imshow(input, cmap="gray")
         plt.title("Maze Solution")
         plt.axis("off")
         plt.show()
@@ -162,16 +160,31 @@ def main():
     else:
 
         t0 = time.time()
-        completed = algorithm.run()
+        path, length, completed = algorithm.run()
         t1 = time.time()
 
         if completed:
-            print("Time taken :",t1-t0,"s\n")
+            print("Path found:")
+            print(path)
+            print("Path length:", length)
         
         else:
             print("\nNo path found")
-            
-        print("Time elapsed:", t1-t0, "\n")
+
+        print("Time taken :",t1-t0,"s\n")
+
+
+        # --------------------------------- Output Image ---------------------------------
+        
+        input = (input==0).astype(int)
+
+        for x,y in path:
+            input[x,y] = 2
+
+        plt.imshow(input)
+        plt.title("Maze Solution")
+        plt.axis("off")
+        plt.show()
 
 
 if __name__ == '__main__':

@@ -280,6 +280,13 @@ class TurtlebotDriving:
 
 
     def plot_trajectory(self, algorithm):
+
+        # Make sure both have the same length
+        if len(self.x_history) - len(self.y_history) != 0:
+
+            for i in range(0,len(self.x_history) - len(self.y_history)):
+                self.x_history.append(None)
+
         plt.plot(self.y_history, self.x_history)
         plt.title('Robot Trajectory with '+str(algorithm))
         plt.axis([10, -10, -10, 10])
@@ -291,3 +298,24 @@ class TurtlebotDriving:
         service()
         self.__init__()
 
+
+    def obtainpath(self):
+
+        # Make sure both have the same length
+        if len(self.x_history) - len(self.y_history) != 0:
+
+            for i in range(0,len(self.x_history) - len(self.y_history)):
+                self.x_history.append(None)
+
+        x_coord = np.array([abs(int(i-10)) for i in self.x_history])
+        y_coord = np.array([abs(int(i-10)) for i in self.y_history])
+
+        path = list(zip(x_coord, y_coord))
+
+        # Remove duplicates
+        path = list(set(path))
+
+        # Sort path
+        path.sort()
+
+        return path

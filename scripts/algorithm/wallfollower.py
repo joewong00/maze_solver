@@ -98,11 +98,12 @@ class WallFollower():
 
             print("Maze Solved!")
             bot.stop()
+            path = bot.obtainpath()
             bot.plot_trajectory('Wall Following')
             bot.relaunch()
             completed = True
 
-            return completed
+            return path, len(path), completed
 
         except rospy.ROSInterruptException:
             pass
