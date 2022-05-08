@@ -21,7 +21,7 @@ from algorithm.wallfollower import WallFollower
 config = {
     "map_dir": "map",
     "map_info":"map1.yaml",
-    "algorithm":"wallfollowing"
+    "algorithm":"dfs"
 }
 
 def main():
@@ -81,7 +81,7 @@ def main():
     # Right wall or Left wall can be specified
     elif config["algorithm"].casefold() == "wallfollowing":
         name = "Wall Following"
-        algorithm = WallFollower(speed=0.2, distance_wall=0.4, side="right")
+        algorithm = WallFollower(speed=0.2, distance_wall=0.4, side="left")
 
 
     else:

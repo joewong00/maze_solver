@@ -19,7 +19,7 @@
 
      <!-- Maze -->
      <include>
-       <uri>model://maze1</uri>
+       <uri>model://maze2</uri>
  	     <pose>-0.25 2.125 0 0 0 0</pose>
      </include>
 
