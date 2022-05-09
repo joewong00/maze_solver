@@ -81,7 +81,7 @@ def main():
     # Right wall or Left wall can be specified
     elif config["algorithm"].casefold() == "wallfollowing":
         name = "Wall Following"
-        algorithm = WallFollower(speed=0.2, distance_wall=0.4, side="left")
+        algorithm = WallFollower(speed=0.2, distance_wall=0.4, side="right")
 
 
     else:

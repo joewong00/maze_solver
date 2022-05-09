@@ -243,7 +243,7 @@ class TurtlebotDriving:
     
     def avoidObstacle(self, degree=90, distance=0.4):
         rate = rospy.Rate(10)
-        print('avoidObstacle triggered.')
+        print("Avoiding obstacle")
         position = degree//2
 
         if np.sum(self.scan.ranges[0:position]) > np.sum(self.scan.ranges[-position:]):
@@ -319,3 +319,4 @@ class TurtlebotDriving:
         path.sort()
 
         return path
+
