@@ -1,9 +1,9 @@
-# Maze Solver using ROS Noetic
+# Maze Solving in ROS
 Solving maze using several state-of-the-art (SOTA) maze-solving approaches: Breadth-first search, Depth-first search, Dijkstra's algorithm, A* search algorithm and Wall-follower algorithm. 
 
 ## Environment
 
-- Ubuntu 18.04LTS 64bit
+- Ubuntu 20.04.2LTS 64bit
 - ROS-Noetic
 - Gazebo 11
 - Python 3
